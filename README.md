@@ -508,3 +508,182 @@ Separating **state**, **results**, and **logs** makes the workflow reproducible,
 
 Modern documentation and workflow updates for current GHDB and Pagodo
 usage.
+
+
+---
+
+# Omniscient Integration
+
+Pagodo integrates cleanly into the Omniscient DFIR/OSINT framework by separating **state**, **results**, and **logs**. This keeps downloaded GHDB data, search results, and runtime artifacts organized while allowing other Omniscient modules to consume the generated intelligence.
+
+## Directory Layout
+
+```text
+/opt/omniscient/
+├── state/
+│   └── pagodo/
+│       └── dorks/
+│           ├── all_google_dorks.txt
+│           ├── all_google_dorks.json
+│           └── categories/
+│               ├── 01_footholds.dorks
+│               ├── 02_files_containing_usernames.dorks
+│               ├── ...
+│               └── 14_advisories_and_vulnerabilities.dorks
+│
+├── results/
+│   └── pagodo/
+│       ├── pagodo_results.json
+│       ├── pagodo_results.txt
+│       └── exports/
+│
+└── logs/
+    └── pagodo/
+        └── pagodo.log
+```
+
+---
+
+## Workflow
+
+```text
+              Exploit-DB GHDB
+                     │
+                     ▼
+              ghdb-scraper
+                     │
+                     ▼
+    /opt/omniscient/state/pagodo/dorks
+                     │
+                     ▼
+                 pagodo
+                     │
+                     ▼
+   /opt/omniscient/results/pagodo
+                     │
+                     ▼
+      Omniscient DFIR / OSINT Modules
+```
+
+---
+
+## Step 1 — Download the Latest GHDB
+
+Generate a fresh copy of the Google Hacking Database and organize it into categories.
+
+```bash
+ghdb-scraper \
+  --save-all \
+  --json \
+  --individual-categories \
+  --output-directory /opt/omniscient/state/pagodo/dorks
+```
+
+Generated files include:
+
+```text
+all_google_dorks.txt
+all_google_dorks.json
+categories/*.dorks
+```
+
+---
+
+## Step 2 — Run Pagodo
+
+Select the category most appropriate for your assessment.
+
+Example using the **Network or Vulnerability Data** category:
+
+```bash
+pagodo \
+  -d authorized.example \
+  -g /opt/omniscient/state/pagodo/dorks/categories/11_network_or_vulnerability_data.dorks \
+  --output-directory /opt/omniscient/results/pagodo \
+  -m 3 \
+  -o \
+  -s
+```
+
+---
+
+## Example Categories
+
+| Category | Typical Purpose |
+|-----------|-----------------|
+| 01 | Initial foothold discovery |
+| 02 | Exposed usernames |
+| 03 | Sensitive directories |
+| 04 | Web server fingerprinting |
+| 05 | Vulnerable files |
+| 06 | Vulnerable servers |
+| 07 | Error message disclosure |
+| 08 | Sensitive documents and configuration files |
+| 09 | Password exposure |
+| 10 | Shopping and payment information |
+| 11 | Network infrastructure and vulnerability intelligence |
+| 12 | Login portals |
+| 13 | Internet-connected devices |
+| 14 | Public advisories and known vulnerabilities |
+
+---
+
+## Suggested Omniscient Workflow
+
+```text
+Update GHDB
+      │
+      ▼
+Choose Category
+      │
+      ▼
+Scope to Authorized Domain
+      │
+      ▼
+Execute Pagodo
+      │
+      ▼
+Export JSON / TXT Results
+      │
+      ▼
+Import Into
+ • OSINT
+ • DFIR
+ • Reporting
+ • Case Management
+```
+
+---
+
+## Recommended Directory Permissions
+
+```bash
+sudo mkdir -p \
+  /opt/omniscient/state/pagodo/dorks \
+  /opt/omniscient/results/pagodo \
+  /opt/omniscient/logs/pagodo
+
+sudo chown -R root:omniscient \
+  /opt/omniscient/state/pagodo \
+  /opt/omniscient/results/pagodo \
+  /opt/omniscient/logs/pagodo
+
+sudo chmod -R 2775 \
+  /opt/omniscient/state/pagodo \
+  /opt/omniscient/results/pagodo \
+  /opt/omniscient/logs/pagodo
+```
+
+---
+
+## Integration Opportunities
+
+Pagodo output can be consumed by other Omniscient components, including:
+
+- **OSINT** for enrichment and correlation.
+- **Case Management** for preserving search results as evidence.
+- **Reporting** for generating assessment summaries.
+- **Evidence Storage** for archiving JSON and text exports.
+- **Automation Pipelines** for scheduled GHDB updates and recurring searches against authorized scopes.
+
+Separating **state**, **results**, and **logs** makes the workflow reproducible, simplifies backups, and allows downstream modules to process Pagodo output without modifying the original GHDB data.
